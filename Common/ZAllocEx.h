@@ -295,16 +295,26 @@ public:
 		}
 		else
 		{
+			struct allocation {
+				size_t size;
+				PVOID remaining;
+			};
+
 			/* get handle to process heap */
 			HANDLE hHeap = GetProcessHeap();
 
 			/* allocate an extra pointer to store the allocation size */
-			PVOID* lpAlloc = reinterpret_cast<PVOID*>(HeapAlloc(hHeap, NULL, uSize + sizeof(PVOID)));
+			size_t uRealSize = sizeof(PVOID) + uSize;
+
+			/* it doesn't matter that our struct is smaller than the allocation */
+			/* because the allocated bytes are still available */
+			allocation* pAllocation = reinterpret_cast<allocation*>(HeapAlloc(hHeap, NULL, uRealSize));
 
 			/* set allocation size at head of allocation */
-			*lpAlloc = reinterpret_cast<PVOID>(uSize);
+			pAllocation->size = uSize;
 
-			return lpAlloc + 1; // return next 32-bit address after the size imprint
+			/* return next memory address following the size allocation */
+			return &pAllocation->remaining;
 		}
 
 		INT nAllocBlocks;
