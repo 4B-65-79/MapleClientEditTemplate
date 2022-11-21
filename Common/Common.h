@@ -13,6 +13,8 @@
 #include "FakeModule.h"
 
 #define MAPLE_INJECT_USE_IJL TRUE
+#define MAPLE_MULTICLIENT TRUE
+#define MAPLE_INSTAJECT FALSE
 
 /// <summary>
 /// 
