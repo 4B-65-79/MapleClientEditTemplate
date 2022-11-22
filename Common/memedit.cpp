@@ -1,31 +1,79 @@
 #include "memedit.h"
+#include "logger.h"
 
-VOID PatchRetZero(DWORD dwAddress)
+BOOL MemEdit::PatchRetZero(DWORD dwAddress)
 {
-	*(BYTE*)(dwAddress + 0) = x86XOR;
-	*(BYTE*)(dwAddress + 1) = x86EAXEAX;
-	*(BYTE*)(dwAddress + 2) = x86RET;
+	BYTE bArr[3];
+	bArr[0] = x86XOR;
+	bArr[1] = x86EAXEAX;
+	bArr[2] = x86RET;
+
+	// https://stackoverflow.com/a/13026295/14784253
+	DWORD dwOldValue, dwTemp;
+
+	VirtualProtect((LPVOID)dwAddress, sizeof(bArr), PAGE_EXECUTE_READWRITE, &dwOldValue);
+	BOOL bSuccess = WriteProcessMemory(GetCurrentProcess(), (LPVOID)dwAddress, &bArr, sizeof(bArr), NULL);
+	VirtualProtect((LPVOID)dwAddress, sizeof(bArr), dwOldValue, &dwTemp);
+	return bSuccess;
 }
 
-VOID PatchJmp(DWORD dwAddress, PVOID pDestination)
+BOOL MemEdit::PatchJmp(DWORD dwAddress, PVOID pDestination)
 {
-	*(BYTE*)(dwAddress + 0) = x86JMP;
-	*(DWORD*)(dwAddress + 1) = relative_address(dwAddress, pDestination);
+	patch_far_jmp pWrite =
+	{
+		x86JMP,
+		(DWORD)pDestination - (dwAddress + sizeof(DWORD) + sizeof(BYTE))
+	};
+
+	// https://stackoverflow.com/a/13026295/14784253
+	DWORD dwOldValue, dwTemp;
+
+	VirtualProtect((LPVOID)dwAddress, sizeof(pWrite), PAGE_EXECUTE_READWRITE, &dwOldValue);
+	BOOL bSuccess = WriteProcessMemory(GetCurrentProcess(), (LPVOID)dwAddress, &pWrite, sizeof(pWrite), NULL);
+	VirtualProtect((LPVOID)dwAddress, sizeof(pWrite), dwOldValue, &dwTemp);
+	return bSuccess;
 }
 
-VOID PatchCall(DWORD dwAddress, PVOID pDestination)
+BOOL MemEdit::PatchCall(DWORD dwAddress, PVOID pDestination)
 {
-	*(BYTE*)(dwAddress + 0) = x86CALL;
-	*(DWORD*)(dwAddress + 1) = relative_address(dwAddress, pDestination);
+	patch_call pWrite =
+	{
+		x86CALL,
+		(DWORD)pDestination - (dwAddress + sizeof(DWORD) + sizeof(BYTE))
+	};
+
+	// https://stackoverflow.com/a/13026295/14784253
+	DWORD dwOldValue, dwTemp;
+
+	VirtualProtect((LPVOID)dwAddress, sizeof(pWrite), PAGE_EXECUTE_READWRITE, &dwOldValue);
+	BOOL bSuccess = WriteProcessMemory(GetCurrentProcess(), (LPVOID)dwAddress, &pWrite, sizeof(pWrite), NULL);
+	VirtualProtect((LPVOID)dwAddress, sizeof(pWrite), dwOldValue, &dwTemp);
+	return bSuccess;
 }
 
-VOID PatchNop(DWORD dwAddress, UINT nCount)
+BOOL MemEdit::PatchNop(DWORD dwAddress, UINT nCount)
 {
+	BYTE* bArr = new BYTE[nCount];
+
 	for (UINT i = 0; i < nCount; i++)
-		*(BYTE*)(dwAddress + i) = x86NOP;
+		bArr[i] = x86NOP;
+
+	// https://stackoverflow.com/a/13026295/14784253
+	DWORD dwOldValue, dwTemp;
+
+	VirtualProtect((LPVOID)dwAddress, nCount, PAGE_EXECUTE_READWRITE, &dwOldValue);
+	BOOL bSuccess = WriteProcessMemory(GetCurrentProcess(), (LPVOID)dwAddress, bArr, nCount, NULL);
+	VirtualProtect((LPVOID)dwAddress, nCount, dwOldValue, &dwTemp);
+	return bSuccess;
 }
 
-VOID WriteBytes(DWORD dwAddress, const char* pData, UINT nCount)
+BOOL MemEdit::WriteBytes(DWORD dwAddress, const char* pData, UINT nCount)
 {
-	memcpy((PVOID)dwAddress, pData, nCount);
+	// https://stackoverflow.com/a/13026295/14784253
+	DWORD dwOldValue, dwTemp;
+
+	VirtualProtect((LPVOID)dwAddress, nCount, PAGE_EXECUTE_READWRITE, &dwOldValue);
+	BOOL bSuccess = WriteProcessMemory(GetCurrentProcess(), (LPVOID)dwAddress, pData, nCount, NULL);
+	VirtualProtect((LPVOID)dwAddress, nCount, dwOldValue, &dwTemp);
+	return bSuccess;
 }

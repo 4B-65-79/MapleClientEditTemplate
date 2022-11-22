@@ -19,10 +19,16 @@ pOrigFunc = reinterpret_cast<Func_t>(dwAddress);							\
 if (!SetHook(TRUE, reinterpret_cast<void**>(&pOrigFunc), pNewFunc))			\
 { Log("Failed to hook maple func at address %d", dwAddress); } // end macro
 
-#define HOOKDEF(retType, callConv, defName, typeName, funcName, ...)		\
-typedef retType (callConv* typeName)(__VA_ARGS__);							\
-typeName defName = nullptr;													\
-retType callConv funcName(__VA_ARGS__);
+#define HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName##_t
+
+// Use this macro in MapleAPI.h to define function types to use for hooks
+// functionName expands to _functionName_t for the type name and _functionName for the reference name.
+#define HOOKTYPEDEF_H(returnType, callingConvention, functionName, ...)						\
+typedef returnType (callingConvention* HOOKTYPEDEF_FUNCTYPE(functionName))(__VA_ARGS__);	\
+extern HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName;
+
+// Use this macro in MapleAPI.cpp to complete the function types for hooks
+#define HOOKTYPEDEF_C(functionName) HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName;
 
 #pragma endregion
 

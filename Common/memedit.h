@@ -2,9 +2,9 @@
 #include <Windows.h>
 #include <stdlib.h>
 
-// thanks raj for some of these
+#include "logger.h"
 
-#define relative_address(frm, to) (int)(((int)to - (int)frm) - 5)
+// thanks raj for some of these
 
 #define x86CMPEAX 0x3D
 #define x86XOR 0x33
@@ -14,20 +14,55 @@
 #define x86CALL 0xE8
 #define x86NOP 0x90
 
-extern VOID PatchRetZero(DWORD dwAddress);
-extern VOID PatchJmp(DWORD dwAddress, PVOID pDestination);
-extern VOID PatchCall(DWORD dwAddress, PVOID pDestination);
-extern VOID PatchNop(DWORD dwAddress, UINT nCount);
-extern VOID WriteBytes(DWORD dwAddress, const char* pData, UINT nCount);
 
-template <typename TType>
-VOID WriteValue(DWORD dwAddress, TType pValue)
-{
-	*((TType*)dwAddress) = pValue;
-}
+class MemEdit {
+private:
 
-template <typename TType>
-TType ReadValue(DWORD dwAddr)
-{
-	return *((TType*)dwAddr);
-}
+	// need to pack this so it doesnt auto-align to 8 bytes
+#pragma pack(1)
+	typedef struct patch_call
+	{
+		BYTE nPatchType;
+		DWORD dwAddress;
+	} patch_far_jmp;
+#pragma pack()
+	assert_size(sizeof(patch_call), 0x5);
+
+public:
+	static BOOL PatchRetZero(DWORD dwAddress);
+	static BOOL PatchJmp(DWORD dwAddress, PVOID pDestination);
+	static BOOL PatchCall(DWORD dwAddress, PVOID pDestination);
+	static BOOL PatchNop(DWORD dwAddress, UINT nCount);
+	static BOOL WriteBytes(DWORD dwAddress, const char* pData, UINT nCount);
+
+	/// <summary>
+	/// Attempts to (over)write a value to the specified location in memory.
+	/// </summary>
+	/// <typeparam name="TType">Type that will be written</typeparam>
+	/// <param name="dwAddress">Address to write to</param>
+	/// <param name="pValue">Pointer to the value to be written</param>
+	/// <returns>True if write operation was successful, otherwise false.</returns>
+	template <typename TType>
+	static BOOL WriteValue(DWORD dwAddress, TType* pValue)
+	{
+		// https://stackoverflow.com/a/13026295/14784253
+		DWORD dwOldValue, dwTemp;
+
+		VirtualProtect((LPVOID)dwAddress, sizeof(TType), PAGE_EXECUTE_READWRITE, &dwOldValue);
+		BOOL bSuccess = WriteProcessMemory(GetCurrentProcess(), (LPVOID)dwAddress, (void*)pValue, sizeof(TType), NULL);
+		VirtualProtect((LPVOID)dwAddress, sizeof(TType), dwOldValue, &dwTemp);
+		return bSuccess;
+	}
+
+	/// <summary>
+	/// Reads the value at the given memory location and returns a pointer to it.
+	/// </summary>
+	/// <typeparam name="TType">Type that will be read</typeparam>
+	/// <param name="dwAddr"></param>
+	/// <returns>Pointer to the value at the given location</returns>
+	template <typename TType>
+	static TType* ReadValue(DWORD dwAddr)
+	{
+		return reinterpret_cast<TType*>(dwAddr);
+	}
+};

@@ -4,12 +4,18 @@
 template <typename T, typename U, typename V>
 class ZMap
 {
-public:
-	struct _PAIR : ZRecyclable<ZMap<T, U, V>::_PAIR, int, ZMap<T, U, V>::_PAIR>
+public: // the 16 should be a sizeof(something) but idk what it is
+	struct _PAIR : ZRecyclable<_PAIR, 16, _PAIR>
 	{
-		ZMap<T, U, V>::_PAIR* pNext;
+		_PAIR* pNext;
 		T key;
 		U value;
+
+		_PAIR() {
+			this->pNext = 0;
+			this->key = 0;
+			this->value = U();
+		}
 
 		_PAIR(T key, _PAIR* pNext)
 		{
@@ -26,7 +32,7 @@ private:
 	size_t m_uAutoGrowEvery128;
 	size_t m_uAutoGrowLimit;
 
-private:
+public:
 	ZMap()
 	{
 		this->m_apTable = nullptr;
@@ -114,9 +120,27 @@ private:
 
 	}
 
-	BOOL RemoveKey()
+	BOOL RemoveKey(const T* key)
 	{
+		if (!this->m_apTable) return false;
 
+		_PAIR* pEntry = this->m_apTable[rotr(*key, 5) % this->m_uTableSize];
+
+		if (!pEntry) return false;
+
+		while (pEntry->key != *key)
+		{
+			if (!pEntry->pNext) return false;
+
+			pEntry = pEntry->pNext;
+		}
+
+		// this probably wont work unless you hook the memory allocation/deallocation
+		// methods that maple uses.. itll give a wrong stack free error
+		delete pEntry;
+
+		this->m_uCount -= 1;
+		return true;
 	}
 
 private:

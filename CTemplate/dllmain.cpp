@@ -42,13 +42,32 @@ VOID MainFunc()
 
 	// edit memory
 
-	WriteValue<BYTE>(0x0, 0xEB); // address to write to, value to write
-	WriteValue<DWORD>(0x0, 0x42069);
-	WriteValue<double>(0x0, 420.69);
+	MemEdit::PatchNop(0x00661243, 6); // address to write to, number of nops
 
-	PatchNop(0x0, 6); // address to write to, number of nops
+	MemEdit::PatchRetZero(0x00661243); // function start address to return zero at
 
-	PatchRetZero(0x0); // function start address to return zero at
+	/* WriteValue is pretty flexible in what can be written */
+	BYTE bNop = x86NOP;
+	MemEdit::WriteValue<BYTE>(0x00661243, &bNop); // address to write to, value to write
+
+	DWORD dwVal = 1500;
+	MemEdit::WriteValue<DWORD>(0x00661243, &dwVal);
+
+	double dVal = 100.50;
+	MemEdit::WriteValue<double>(0x00661243, &dVal);
+
+	/* even simple structs can be written -- but be careful when adding pointers that can go out of scope */
+	struct example_struct_t {
+		int item1;
+		int item2;
+		int item3;
+	};
+
+	example_struct_t toWrite{
+		1, 2, 3
+	};
+
+	MemEdit::WriteValue<example_struct_t>(0x00661243, &toWrite);
 }
 
 // prolly don't edit this region if youre a noob

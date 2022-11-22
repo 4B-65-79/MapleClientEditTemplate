@@ -1,4 +1,5 @@
 #pragma once
+#include "hooker.h"
 
 /*
 	Put all your MapleAPI typedefs in here and link them in MapleAPI.cpp
@@ -20,3 +21,8 @@ extern _ExampleFunc_cdecl_t _ExampleFunc_cdecl;
 /// </summary>
 typedef int(__fastcall* _ExampleFunc_thiscall_t)(void* pThis, void* edx, int nArg1);
 extern _ExampleFunc_thiscall_t _ExampleFunc_thiscall;
+
+
+/* alternatively, for a shorter solution, use this macro to the same effect as the typedefs above */
+/* this expands to the same format as the above examples */
+HOOKTYPEDEF_H(void, __stdcall, ExampleFunc_macro, void* pArg1, int nArg2); // but remember, you still need to link it in MapleAPI.cpp

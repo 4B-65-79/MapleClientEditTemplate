@@ -234,9 +234,9 @@ namespace WinHooks
 
 			// return address should be a cmp eax instruction because ret value is stored in eax
 			// and nothing else should happen before the cmp
-			if (ReadValue<BYTE>(dwRetAddr) == x86CMPEAX)
+			if (*MemEdit::ReadValue<BYTE>(dwRetAddr) == x86CMPEAX)
 			{
-				uiNewLocale = ReadValue<DWORD>(dwRetAddr + 1); // check value is always 4 bytes
+				uiNewLocale = *MemEdit::ReadValue<DWORD>(dwRetAddr + 1); // check value is always 4 bytes
 
 				Log("[GetACP] Found desired locale: %d", uiNewLocale);
 			}
