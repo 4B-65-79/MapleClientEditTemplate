@@ -1,5 +1,5 @@
 #pragma once
-#include "logger.h"
+#include "asserts.h"
 #include "ZRecyclableAvBuffer.h"
 
 template <typename Type, size_t Size, typename Value>

@@ -1,6 +1,8 @@
 #pragma once
 #include <Windows.h>
 
+#include "asserts.h"
+
 /*
 	Original Credits: https://github.com/67-6f-64/Firefly/blob/master/Firefly%20Spy/TSecType.hpp
 	Modifications Made By:
@@ -247,5 +249,5 @@ public:
 	}
 };
 
-//assert_size(sizeof(TSecData<long>), 0x0C)
-//assert_size(sizeof(TSecType<long>), 0x0C)
+assert_size(sizeof(TSecData<long>), 0x0C)
+assert_size(sizeof(SECPOINT), 0x18)

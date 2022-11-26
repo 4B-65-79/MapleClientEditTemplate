@@ -1,4 +1,5 @@
 #pragma once
+#include "asserts.h"
 #include "ZRecyclable.h"
 
 template <typename T, typename U, typename V>
@@ -17,7 +18,7 @@ public: // the 16 should be a sizeof(something) but idk what it is
 			this->value = U();
 		}
 
-		_PAIR(T key, _PAIR* pNext)
+		_PAIR(T const key, _PAIR* const pNext)
 		{
 			this->pNext = pNext;
 			this->key = key;

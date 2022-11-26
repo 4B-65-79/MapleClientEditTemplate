@@ -2,6 +2,8 @@
 #include <Windows.h>
 #include <condition_variable>
 
+#include "asserts.h"
+
 /*
 	Credits: https://github.com/67-6f-64/Firefly/blob/master/Firefly%20Spy/ZtlSecure.hpp
 
@@ -160,3 +162,5 @@ public:
 		this->_ZtlSecureTear_bottom_CS = ZtlSecureTear<int>(this->_ZtlSecureTear_bottom, b);
 	}
 };
+
+assert_size(sizeof(SECRECT), 0x30)

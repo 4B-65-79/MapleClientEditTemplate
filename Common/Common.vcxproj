@@ -163,8 +163,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="asserts.h" />
     <ClInclude Include="Common.h" />
-    <ClInclude Include="CommonTypes.h" />
+    <ClInclude Include="MapleTypes.h" />
     <ClInclude Include="detours.h" />
     <ClInclude Include="FakeModule.h" />
     <ClInclude Include="hooker.h" />
@@ -181,6 +182,7 @@
     <ClInclude Include="ZFatalSection.h" />
     <ClInclude Include="ZList.h" />
     <ClInclude Include="ZMap.h" />
+    <ClInclude Include="ZPair.h" />
     <ClInclude Include="ZRecyclable.h" />
     <ClInclude Include="ZRecyclableAvBuffer.h" />
     <ClInclude Include="ZRecyclableStatic.h" />
