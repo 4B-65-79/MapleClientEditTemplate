@@ -1,5 +1,5 @@
 #pragma once
-#include "logger.h"
+#include "asserts.h"
 #include "ZAllocEx.h"
 
 template<typename T> struct ZAllocEx;

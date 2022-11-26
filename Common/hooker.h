@@ -25,10 +25,10 @@ if (!SetHook(TRUE, reinterpret_cast<void**>(&pOrigFunc), pNewFunc))			\
 // functionName expands to _functionName_t for the type name and _functionName for the reference name.
 #define HOOKTYPEDEF_H(returnType, callingConvention, functionName, ...)						\
 typedef returnType (callingConvention* HOOKTYPEDEF_FUNCTYPE(functionName))(__VA_ARGS__);	\
-extern HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName;
+extern HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName
 
 // Use this macro in MapleAPI.cpp to complete the function types for hooks
-#define HOOKTYPEDEF_C(functionName) HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName;
+#define HOOKTYPEDEF_C(functionName) HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName
 
 #pragma endregion
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "asserts.h"
 #include "ZRefCountedAccessor.h"
 #include "ZRefCountedDummy.h"
 
@@ -12,7 +13,7 @@ class ZList : ZRefCountedAccessor<T>, ZRefCountedAccessor<ZRefCountedDummy<T>>
 #define ZLIST_INVALID_INDEX -1
 
 private:
-	char gap4[1];
+	char gap4[1]; // padding to make the struct align properly on a 4-byte width
 	size_t m_uCount;
 	T* m_pHead;
 	T* m_pTail;

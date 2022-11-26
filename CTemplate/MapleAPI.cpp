@@ -11,4 +11,4 @@ _ExampleFunc_thiscall_t _ExampleFunc_thiscall;
 // end example linking
 
 /* this expands to the same format as the above examples */
-HOOKTYPEDEF_C(ExampleFunc_macro)
+HOOKTYPEDEF_C(ExampleFunc_macro);

@@ -7,6 +7,18 @@
 /// But for now I'm adding ones I figure are constant between all (32-bit) versions.
 ///
 
+#include "asserts.h"
+#include "logger.h"
+
+#include "ZRef.h"
+#include "ZRefCounted.h"
+#include "TSecType.h"
+#include "ZArray.h"
+#include "ZList.h"
+#include "ZMap.h"
+#include "ZXString.h"
+#include "ZPair.h"
+
 typedef const struct
 {
     unsigned int magic;
@@ -32,3 +44,5 @@ struct UINT128
 {
     unsigned int m_data[4];
 };
+
+typedef DWORD __POSITION;

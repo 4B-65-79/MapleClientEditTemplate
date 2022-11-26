@@ -1,5 +1,5 @@
 #pragma once
-#include "logger.h"
+#include "asserts.h"
 
 struct ZRefCountedAccessorBase
 {

@@ -111,7 +111,13 @@
     <ClInclude Include="ZtlSecure.h">
       <Filter>Header Files\MapleTypes</Filter>
     </ClInclude>
-    <ClInclude Include="CommonTypes.h">
+    <ClInclude Include="MapleTypes.h">
+      <Filter>Header Files\MapleTypes</Filter>
+    </ClInclude>
+    <ClInclude Include="asserts.h">
+      <Filter>Header Files\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="ZPair.h">
       <Filter>Header Files\MapleTypes</Filter>
     </ClInclude>
   </ItemGroup>

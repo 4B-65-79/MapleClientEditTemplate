@@ -1,5 +1,5 @@
 #pragma once
-#include "logger.h"
+#include "asserts.h"
 #include "ZAllocEx.h"
 
 template <typename T>
@@ -417,10 +417,13 @@ private:
 
 		uCurArraySize = this->GetCount();
 
-		/* Allocate new block */
-		DWORD* pNewAllocationBase = (DWORD*)ZAllocEx<ZAllocAnonSelector>::GetInstance()->Alloc(sizeof(T) * uItems + sizeof(PVOID));
+		/* Allocation size is space for all the items plus encoding the size of the array at the start of the allocation */
+		size_t nAllocationSize = (sizeof(T) * uItems) + sizeof(PVOID);
 
-		/* Encode new array size at allocation base */
+		/* Allocate new block */
+		DWORD* pNewAllocationBase = (DWORD*)ZAllocEx<ZAllocAnonSelector>::GetInstance()->Alloc(nAllocationSize);
+
+		/* Set size of the array at the base of the allocation */
 		*pNewAllocationBase = uCurArraySize;
 
 		/* Increment allocation base */
@@ -438,10 +441,6 @@ private:
 		}
 
 		this->a = reinterpret_cast<T*>(pNewAllocationBase);
-
-		/* Reassign value at array size pointer to match new size */
-		/*DWORD* pdwArraySize = &reinterpret_cast<DWORD*>(this->a)[-1];
-		*pdwArraySize = uCurArraySize;*/
 	}
 };
 
