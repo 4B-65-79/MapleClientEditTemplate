@@ -75,6 +75,11 @@ public:
 		return this->a[i];
 	}
 
+	T* FindIndex(size_t uIndex)
+	{
+		return &this->a[uIndex];
+	}
+
 	T& GetAt(size_t i)
 	{
 		return this->a[i];
