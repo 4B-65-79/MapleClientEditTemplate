@@ -1,4 +1,6 @@
 #include "logger.h"
+#include <Windows.h>
+#include <stdio.h>
 
 void Log(const char* format, ...)
 {

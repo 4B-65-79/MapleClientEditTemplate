@@ -1,16 +1,29 @@
 #include "Common.h"
 
+// Exclude rarely-used stuff from Windows headers
+// Important to define this before Windows.h is included in a project because of linker issues with the WinSock2 lib
+#define WIN32_LEAN_AND_MEAN
+
+#include <Windows.h>
+
+#include "FakeModule.h"
+#include "hooker.h"
+#include "logger.h"
+#include "winhooks.h"
+#include "winhook_types.h"
+
 Common* Common::_s_pInstance;
 Common::Config* Common::_s_pConfig;
 
-Common::Common(BOOL bHookWinLibs, std::function<void()> pPostMutexFunc, const char* sIP, const char* sOriginalIP)
+Common::Common(bool bHookWinLibs, std::function<void()> const& pPostMutexFunc, const char* sIP, const char* sOriginalIP)
 {
 	this->m_sRedirectIP = sIP;
 	this->m_sOriginalIP = sOriginalIP;
 	this->m_GameSock = INVALID_SOCKET;
-	this->m_ProcTable = { 0 };
-	this->m_bThemidaUnpacked = FALSE;
+	this->m_pProcTable = nullptr;
+	this->m_bThemidaUnpacked = false;
 	this->m_dwGetProcRetAddr = 0;
+	this->m_pFakeHsModule = nullptr;
 
 	if (!pPostMutexFunc)
 	{
@@ -20,13 +33,13 @@ Common::Common(BOOL bHookWinLibs, std::function<void()> pPostMutexFunc, const ch
 		return;
 	}
 
-	if (this->GetConfig()->InjectImmediately) // call post-unpack function right away
+	this->m_PostMutexFunc = pPostMutexFunc;
+
+	if (Common::GetConfig()->InjectImmediately) // call post-unpack function right away
 	{
-		pPostMutexFunc();
-	}
-	else // set pointer to function that is executed after client unpacks itself
-	{
-		this->m_PostMutexFunc = pPostMutexFunc;
+		// call OnThemidaUnpack so the SleepAfterUnpackDuration will trigger
+		// even if InjectImmediately is active
+		this->OnThemidaUnpack();
 	}
 
 #if _DEBUG
@@ -35,6 +48,27 @@ Common::Common(BOOL bHookWinLibs, std::function<void()> pPostMutexFunc, const ch
 
 	// required for proper injection
 	INITWINHOOK("KERNEL32", "CreateMutexA", CreateMutexA_Original, CreateMutexA_t, WinHooks::CreateMutexA_Hook);
+
+
+	if (this->GetConfig()->HookToggleInfo.ImGui_Enable) {
+#if DIRECTX_VERSION == 8
+		INITWINHOOK(
+			"D3D8",
+			"Direct3DCreate8",
+			Direct3DCreateX_Original,
+			Direct3DCreateX_t,
+			WinHooks::DirectX::Direct3DCreateX_Hook
+		);
+#elif DIRECTX_VERSION == 9
+		INITWINHOOK(
+			"D3D9",
+			"Direct3DCreate9",
+			Direct3DCreateX_Original,
+			Direct3DCreateX_t,
+			WinHooks::DirectX::Direct3DCreateX_Hook
+		);
+#endif
+	}
 
 	if (Common::GetConfig()->MaplePatcherClass || Common::GetConfig()->MapleWindowClass || Common::GetConfig()->InjectImmediately)
 	{
@@ -113,18 +147,17 @@ Common::~Common()
 		Log("Closing socket..");
 #endif
 
-		this->m_ProcTable.lpWSPCloseSocket(this->m_GameSock, nullptr);
+		this->m_pProcTable->lpWSPCloseSocket(this->m_GameSock, nullptr);
 		this->m_GameSock = INVALID_SOCKET;
 	}
+
+	// TODO clean up ImGui stuff here
 }
 
 void Common::OnThemidaUnpack()
 {
-	if (Common::GetConfig()->InjectImmediately) return;
-
 	if (this->m_bThemidaUnpacked) return;
-
-	this->m_bThemidaUnpacked = TRUE;
+	this->m_bThemidaUnpacked = true;
 
 	if (Common::GetConfig()->SleepAfterUnpackDuration)
 	{
@@ -137,4 +170,9 @@ void Common::OnThemidaUnpack()
 #endif
 
 	this->m_PostMutexFunc();
+}
+
+void Common::SetImGuiDrawingFunc(std::function<void()> pDrawingFunc)
+{
+	WinHooks::DirectX::g_pDrawingFunc = pDrawingFunc;
 }

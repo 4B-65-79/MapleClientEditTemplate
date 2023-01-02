@@ -165,6 +165,27 @@
   <ItemGroup>
     <ClInclude Include="asserts.h" />
     <ClInclude Include="Common.h" />
+    <ClInclude Include="directx\dx8\d3d8.h" />
+    <ClInclude Include="directx\dx8\d3d8caps.h" />
+    <ClInclude Include="directx\dx8\d3d8types.h" />
+    <ClInclude Include="directx\dx8\d3dx8.h" />
+    <ClInclude Include="directx\dx8\d3dx8core.h" />
+    <ClInclude Include="directx\dx8\d3dx8effect.h" />
+    <ClInclude Include="directx\dx8\d3dx8math.h" />
+    <ClInclude Include="directx\dx8\d3dx8mesh.h" />
+    <ClInclude Include="directx\dx8\d3dx8shape.h" />
+    <ClInclude Include="directx\dx8\d3dx8tex.h" />
+    <ClInclude Include="directx\dx8\dxerr8.h" />
+    <ClInclude Include="directx\dx8\dxfile.h" />
+    <ClInclude Include="imgui\imgui_impl_dx8.h" />
+    <ClInclude Include="imgui\imgui_impl_dx9.h" />
+    <ClInclude Include="imgui\imgui_impl_win32.h" />
+    <ClInclude Include="imgui\imconfig.h" />
+    <ClInclude Include="imgui\imgui.h" />
+    <ClInclude Include="imgui\imgui_internal.h" />
+    <ClInclude Include="imgui\imstb_rectpack.h" />
+    <ClInclude Include="imgui\imstb_textedit.h" />
+    <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="MapleTypes.h" />
     <ClInclude Include="detours.h" />
     <ClInclude Include="FakeModule.h" />
@@ -197,13 +218,25 @@
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="FakeModule.cpp" />
     <ClCompile Include="hooker.cpp" />
+    <ClCompile Include="imgui\imgui_impl_dx8.cpp" />
+    <ClCompile Include="imgui\imgui_impl_dx9.cpp" />
+    <ClCompile Include="imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="imgui\imgui.cpp" />
+    <ClCompile Include="imgui\imgui_demo.cpp" />
+    <ClCompile Include="imgui\imgui_draw.cpp" />
+    <ClCompile Include="imgui\imgui_tables.cpp" />
+    <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="logger.cpp" />
     <ClCompile Include="memedit.cpp" />
+    <ClCompile Include="TSecType.cpp" />
     <ClCompile Include="winhooks.cpp" />
     <ClCompile Include="winhook_types.cpp" />
+    <ClCompile Include="ZAllocBase.cpp" />
     <ClCompile Include="ZAllocEx.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="directx\dx8\d3dx8math.inl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

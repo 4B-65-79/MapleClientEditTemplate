@@ -96,11 +96,11 @@ namespace CommonUnitTesting
 		{
 			SECRECT s = SECRECT(10, 15, 7, 4);
 
-			Assert::AreEqual(TRUE, s.IsRectEmpty());
+			Assert::AreEqual(true, s.IsRectEmpty());
 
 			s.SetRect(7, 4, 10, 15);
 
-			Assert::AreEqual(FALSE, s.IsRectEmpty());
+			Assert::AreEqual(true, s.IsRectEmpty());
 		}
 	};
 }

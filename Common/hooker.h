@@ -1,8 +1,4 @@
 #pragma once
-#include <Windows.h>
-#include "detours.h"
-
-#pragma comment(lib, "detours.lib")
 
 #pragma region Macros
 
@@ -32,6 +28,6 @@ extern HOOKTYPEDEF_FUNCTYPE(functionName) _##functionName
 
 #pragma endregion
 
-extern BOOL SetHook(bool bInstall, void** ppvTarget, void* pvDetour);
-extern DWORD GetFuncAddress(const char* lpModule, const char* lpFunc);
-extern PVOID HookVTableFunction(void* pVTable, void* fnHookFunc, int nOffset);
+extern bool SetHook(bool bInstall, void** ppvTarget, void* pvDetour);
+extern unsigned int GetFuncAddress(const char* lpModule, const char* lpFunc);
+extern void* HookVTableFunction(void* pVTable, void* fnHookFunc, int nOffset);

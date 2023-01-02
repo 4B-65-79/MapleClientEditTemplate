@@ -2,8 +2,12 @@
 #include "asserts.h"
 #include "ZAllocEx.h"
 
+#include <Windows.h>
+
 template<typename T> struct ZAllocEx;
 template<typename T> struct ZAllocStrSelector;
+
+typedef unsigned int size_t;
 
 /*
 	Credits: Minimum Delta - this was a pain in the ass to figure out, ya'll
@@ -145,14 +149,14 @@ public:
 	/// </summary>
 	/// <param name="s">ZXString object to compare against.</param>
 	/// <returns>
-	/// True if the encapsulated string in the ZXString objects are lexicographically identical to each other, else false.
+	/// true if the encapsulated string in the ZXString objects are lexicographically identical to each other, else false.
 	/// </returns>
-	BOOL operator==(ZXString<T>* s)
+	bool operator==(ZXString<T>* s)
 	{
 		return this->Compare(s);
 	}
 
-	BOOL operator!=(ZXString<T>* s)
+	bool operator!=(ZXString<T>* s)
 	{
 		return !this->Compare(s);
 	}
@@ -162,14 +166,14 @@ public:
 	/// </summary>
 	/// <param name="s">T-size char array to compare against.</param>
 	/// <returns>
-	/// True if the encapsulated string in the ZXString object is lexicographically identical to the char array s, else false.
+	/// true if the encapsulated string in the ZXString object is lexicographically identical to the char array s, else false.
 	/// </returns>
-	BOOL operator==(const T* s)
+	bool operator==(const T* s)
 	{
 		return this->Compare(s);
 	}
 
-	BOOL operator!=(const T* s)
+	bool operator!=(const T* s)
 	{
 		return !this->Compare(s);
 	}
@@ -177,9 +181,9 @@ public:
 	/// <summary>
 	/// Checks if the encapsulated string is a NULL string.
 	/// </summary>
-	BOOL operator !()
+	bool operator !()
 	{
-		return *this->m_pStr == NULL;
+		return *this->m_pStr == nullptr;
 	}
 
 	/// <summary>
@@ -216,10 +220,10 @@ public:
 	/// <summary>
 	/// Determines if the ZXString object is empty.
 	/// </summary>
-	/// <returns>True if the encapsulated T pointer is null or if the value pointed to by the T pointer is null, else false.</returns>
-	BOOL IsEmpty()
+	/// <returns>true if the encapsulated T pointer is null or if the value pointed to by the T pointer is null, else false.</returns>
+	bool IsEmpty()
 	{
-		return this->m_pStr == nullptr || *this->m_pStr == NULL;
+		return this->m_pStr == nullptr || *this->m_pStr == nullptr;
 	}
 
 	void Assign(ZXString<T>* s)
@@ -265,7 +269,7 @@ public:
 				nLen = this->TStrLen(s);
 			}
 
-			T* pBuff = this->GetBuffer(nLen, FALSE);
+			T* pBuff = this->GetBuffer(nLen, false);
 			int nByteLength = nLen * sizeof(T);
 
 			memcpy(pBuff, s, nByteLength);
@@ -278,11 +282,11 @@ public:
 		}
 	}
 
-	BOOL Compare(ZXString<T>* s)
+	bool Compare(ZXString<T>* s)
 	{
 		int nStr1Len, nStr2Len;
 
-		if (this->m_pStr == s->m_pStr) return TRUE;
+		if (this->m_pStr == s->m_pStr) return true;
 
 		nStr1Len = this->Length();
 		nStr2Len = s->Length();
@@ -293,38 +297,38 @@ public:
 			{
 				if (this->m_pStr[i] != s->m_pStr[i])
 				{
-					return FALSE;
+					return false;
 				}
 			}
 
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
-	BOOL Compare(const char* s)
+	bool Compare(const char* s)
 	{
 		if (!this->m_pStr) return !s;
 
 		return !strcmp(reinterpret_cast<const char*>(this->m_pStr), reinterpret_cast<const char*>(s));
 	}
 
-	BOOL Compare(const wchar_t* s)
+	bool Compare(const wchar_t* s)
 	{
 		if (!this->m_pStr) return !s;
 
 		return !wcscmp(reinterpret_cast<const wchar_t*>(this->m_pStr), reinterpret_cast<const wchar_t*>(s));
 	}
 
-	BOOL CompareNoCase(const char* s)
+	bool CompareNoCase(const char* s)
 	{
 		if (!this->m_pStr) return !s;
 
 		return !stricmp(reinterpret_cast<const char*>(this->m_pStr), reinterpret_cast<const char*>(s));
 	}
 
-	BOOL CompareNoCase(const wchar_t* s)
+	bool CompareNoCase(const wchar_t* s)
 	{
 		if (!this->m_pStr) return !s;
 
@@ -342,7 +346,7 @@ public:
 
 		if (this->IsEmpty()) // if existing string is null or empty, copy new string to existing string
 		{
-			T* pBuff = this->GetBuffer(nLen, FALSE);
+			T* pBuff = this->GetBuffer(nLen, false);
 			memcpy(pBuff, s, sizeof(T) * nLen);
 			this->ReleaseBuffer(nLen);
 		}
@@ -360,7 +364,7 @@ public:
 				nCap *= 2;
 			}
 
-			T* pBuff = this->GetBuffer(nCap, TRUE);
+			T* pBuff = this->GetBuffer(nCap, true);
 
 			int nByteLength = sizeof(T) * nLen;
 
@@ -387,7 +391,7 @@ public:
 		{
 			if (nBytesWritten >= 0) break;
 
-			pBuff = s.GetBuffer(nBufferLen, FALSE);
+			pBuff = s.GetBuffer(nBufferLen, false);
 
 			if (sizeof(T) == 1) // compiler should optimize away this conditional when in release mode
 			{
@@ -423,7 +427,7 @@ private:
 		return nullptr;
 	}
 
-	T* GetBuffer(size_t nMinLength, BOOL bRetain)
+	T* GetBuffer(size_t nMinLength, bool bRetain)
 	{
 		ZXString<T>::_ZXStringData* pCurData;
 		ZXString<T>::_ZXStringData* pNewData;
@@ -506,7 +510,7 @@ private:
 	{
 		size_t nTotalSize = (sizeof(T) * nCap) + sizeof(ZXString<T>::_ZXStringData) + sizeof(T);
 
-		PVOID pAllocated = ZAllocEx<ZAllocStrSelector<T>>::GetInstance()->Alloc(nTotalSize);
+		void* pAllocated = ZAllocEx<ZAllocStrSelector<T>>::GetInstance()->Alloc(nTotalSize);
 
 		ZXString<T>::_ZXStringData* result = reinterpret_cast<ZXString<T>::_ZXStringData*>(pAllocated);
 		result->nCap = nCap;

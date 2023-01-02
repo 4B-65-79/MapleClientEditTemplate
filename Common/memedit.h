@@ -1,10 +1,7 @@
 #pragma once
-#include <Windows.h>
-#include <stdlib.h>
-
 #include "asserts.h"
 
-// thanks raj for some of these
+// thanks raj for the foundation of this module
 
 #define x86CMPEAX 0x3D
 #define x86XOR 0x33
@@ -14,6 +11,9 @@
 #define x86CALL 0xE8
 #define x86NOP 0x90
 
+// forward declarations
+typedef unsigned char BYTE;
+typedef unsigned long DWORD;
 
 class MemEdit {
 private:
@@ -29,11 +29,11 @@ private:
 	assert_size(sizeof(patch_call), 0x5);
 
 public:
-	static BOOL PatchRetZero(DWORD dwAddress);
-	static BOOL PatchJmp(DWORD dwAddress, PVOID pDestination);
-	static BOOL PatchCall(DWORD dwAddress, PVOID pDestination);
-	static BOOL PatchNop(DWORD dwAddress, UINT nCount);
-	static BOOL WriteBytes(DWORD dwAddress, const char* pData, UINT nCount);
+	static bool PatchRetZero(DWORD dwAddress);
+	static bool PatchJmp(DWORD dwAddress, void* pDestination);
+	static bool PatchCall(DWORD dwAddress, void* pDestination);
+	static bool PatchNop(DWORD dwAddress, unsigned int nCount);
+	static bool WriteBytes(DWORD dwAddress, const char* pData, unsigned int nCount);
 
 	/// <summary>
 	/// Attempts to (over)write a value to the specified location in memory.
@@ -43,15 +43,9 @@ public:
 	/// <param name="pValue">Pointer to the value to be written</param>
 	/// <returns>True if write operation was successful, otherwise false.</returns>
 	template <typename TType>
-	static BOOL WriteValue(DWORD dwAddress, TType* pValue)
+	static bool WriteValue(DWORD dwAddress, TType* pValue)
 	{
-		// https://stackoverflow.com/a/13026295/14784253
-		DWORD dwOldValue, dwTemp;
-
-		VirtualProtect((LPVOID)dwAddress, sizeof(TType), PAGE_EXECUTE_READWRITE, &dwOldValue);
-		BOOL bSuccess = WriteProcessMemory(GetCurrentProcess(), (LPVOID)dwAddress, (void*)pValue, sizeof(TType), NULL);
-		VirtualProtect((LPVOID)dwAddress, sizeof(TType), dwOldValue, &dwTemp);
-		return bSuccess;
+		return WriteBytes(dwAddress, reinterpret_cast<char*>(pValue), sizeof(TType));
 	}
 
 	/// <summary>

@@ -1,8 +1,45 @@
 #pragma once
+#include "Common.h" // for DIRECTX_VERSION
 #include <WinSock2.h>
 #include <Windows.h>
 #include <WS2spi.h>
-#include <intrin.h>
+
+#if DIRECTX_VERSION
+
+#if DIRECTX_VERSION == 8
+#include "directx/dx8/d3d8.h"
+
+typedef LPDIRECT3DDEVICE8 LPDIRECT3DDEVICEX;
+typedef IDirect3D8 IDirect3DX;
+typedef LPDIRECT3D8 LPDIRECT3DX;
+typedef IDirect3DDevice8 IDirect3DDeviceX;
+
+#elif DIRECTX_VERSION == 9
+#include <d3d9.h>
+
+typedef LPDIRECT3DDEVICE9 LPDIRECT3DDEVICEX;
+typedef IDirect3D9 IDirect3DX;
+typedef LPDIRECT3D9 LPDIRECT3DX;
+typedef IDirect3DDevice9 IDirect3DDeviceX;
+#endif
+
+typedef HRESULT(WINAPI* D3DX__CreateDevice_t)(
+	LPDIRECT3DX pThis,
+	UINT Adapter,
+	D3DDEVTYPE DeviceType,
+	HWND hFocusWindow,
+	DWORD BehaviorFlags,
+	D3DPRESENT_PARAMETERS* pPresentationParameters,
+	IDirect3DDeviceX** ppReturnedDeviceInterface
+	);
+typedef HRESULT(WINAPI* D3DX__EndScene_t)(LPDIRECT3DDEVICEX pThis);
+typedef IDirect3DX* (WINAPI* Direct3DCreateX_t)(UINT SDKVersion);
+
+extern D3DX__CreateDevice_t D3DX__CreateDevice_Original;
+extern D3DX__EndScene_t D3DX__EndScene_Original;
+extern Direct3DCreateX_t Direct3DCreateX_Original;
+
+#endif
 
 /// <summary>
 /// https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea

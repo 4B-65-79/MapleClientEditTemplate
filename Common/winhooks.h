@@ -1,10 +1,65 @@
 #pragma once
+#include "Common.h"
 #include <WinSock2.h>
 #include <Windows.h>
 #include <WS2spi.h>
 
+#include "winhook_types.h"
+
+#if DIRECTX_VERSION
+
+#if DIRECTX_VERSION == 8
+#include "directx/dx8/d3d8.h"
+#elif DIRECTX_VERSION == 9
+#include <d3d9.h>
+#endif
+
+#endif
+
 namespace WinHooks
 {
+#if DIRECTX_VERSION
+	namespace DirectX
+	{
+		// these parameters are common to any version of directx that we work with
+		extern WNDPROC g_pWndProc;
+		extern std::function<void()> g_pDrawingFunc;
+		extern HWND					g_hWnd;
+		extern LPDIRECT3DX             g_pD3D;
+		extern IDirect3DDeviceX* g_pd3dDevice;
+		extern D3DPRESENT_PARAMETERS   g_d3dpp;
+
+		LRESULT D3D_WndProc_Hook(
+			HWND hWnd,
+			UINT msg,
+			WPARAM wParam,
+			LPARAM lParam
+		);
+
+		/// <summary>
+		/// This is a windows API hook that we use to catch the pointer to D3DX (8 or 9) as MapleStory is
+		/// initializing the graphics drivers. This gets called once during startup and the returns the
+		/// DX interface pointer that is used to control all of the graphics.
+		/// </summary>
+		HRESULT WINAPI D3DX__CreateDevice_Hook(
+			LPDIRECT3DX pThis,
+			UINT Adapter,
+			D3DDEVTYPE DeviceType,
+			HWND hFocusWindow,
+			DWORD BehaviorFlags,
+			D3DPRESENT_PARAMETERS* pPresentationParameters,
+			IDirect3DDeviceX** ppReturnedDeviceInterface
+		);
+
+		HRESULT WINAPI D3DX__EndScene_Hook(LPDIRECT3DDEVICEX pThis);
+
+		IDirect3DX* WINAPI Direct3DCreateX_Hook(
+			UINT SDKVersion
+		);
+	}
+
+#endif
+
 	/// <summary>
 	/// Used to map out imports used by MapleStory.
 	/// The log output can be used to reconstruct the _ZAPIProcAddress struct

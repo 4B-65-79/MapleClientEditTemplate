@@ -1,7 +1,10 @@
 #include "memedit.h"
 #include "logger.h"
 
-BOOL MemEdit::PatchRetZero(DWORD dwAddress)
+#include <Windows.h>
+#include <stdlib.h>
+
+bool MemEdit::PatchRetZero(DWORD dwAddress)
 {
 	BYTE bArr[3];
 	bArr[0] = x86XOR;
@@ -17,7 +20,7 @@ BOOL MemEdit::PatchRetZero(DWORD dwAddress)
 	return bSuccess;
 }
 
-BOOL MemEdit::PatchJmp(DWORD dwAddress, PVOID pDestination)
+bool MemEdit::PatchJmp(DWORD dwAddress, void* pDestination)
 {
 	patch_far_jmp pWrite =
 	{
@@ -34,7 +37,7 @@ BOOL MemEdit::PatchJmp(DWORD dwAddress, PVOID pDestination)
 	return bSuccess;
 }
 
-BOOL MemEdit::PatchCall(DWORD dwAddress, PVOID pDestination)
+bool MemEdit::PatchCall(DWORD dwAddress, void* pDestination)
 {
 	patch_call pWrite =
 	{
@@ -51,7 +54,7 @@ BOOL MemEdit::PatchCall(DWORD dwAddress, PVOID pDestination)
 	return bSuccess;
 }
 
-BOOL MemEdit::PatchNop(DWORD dwAddress, UINT nCount)
+bool MemEdit::PatchNop(DWORD dwAddress, unsigned int nCount)
 {
 	BYTE* bArr = new BYTE[nCount];
 
@@ -67,7 +70,7 @@ BOOL MemEdit::PatchNop(DWORD dwAddress, UINT nCount)
 	return bSuccess;
 }
 
-BOOL MemEdit::WriteBytes(DWORD dwAddress, const char* pData, UINT nCount)
+bool MemEdit::WriteBytes(DWORD dwAddress, const char* pData, unsigned int nCount)
 {
 	// https://stackoverflow.com/a/13026295/14784253
 	DWORD dwOldValue, dwTemp;

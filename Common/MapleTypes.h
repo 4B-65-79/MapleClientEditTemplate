@@ -1,6 +1,17 @@
 #pragma once
 #include <comip.h>
 
+/*
+ fixes the _bstr_t linking errors
+ these files should be included in your vs lib directory by default
+*/
+#ifdef _DEBUG
+#pragma comment(lib, "comsuppwd.lib")
+#else
+#pragma comment(lib, "comsuppw.lib")
+#endif
+#pragma comment(lib, "wbemuuid.lib")
+
 ///
 /// Maplestory types that are common between many version will go in here.
 /// Eventually we can use preprocessor macros to construct these based on version.
@@ -43,6 +54,21 @@ struct RANGE
 struct UINT128
 {
     unsigned int m_data[4];
+};
+
+struct Triangle
+{
+    tagPOINT p[3];
+};
+
+struct ZSocketBase
+{
+    unsigned int _m_hSocket;
+};
+
+struct ZInetAddr //: sockaddr_in
+{
+    char aPad[0x10];
 };
 
 typedef DWORD __POSITION;

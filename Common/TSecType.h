@@ -1,7 +1,7 @@
 #pragma once
-#include <Windows.h>
-
 #include "asserts.h"
+
+#include <Windows.h>
 
 /*
 	Original Credits: https://github.com/67-6f-64/Firefly/blob/master/Firefly%20Spy/TSecType.hpp
@@ -12,23 +12,30 @@
 	Additional Information From: https://en.cppreference.com/w/cpp/language/operators
 */
 
+// defining LOBYTE instead of include Windows.h to reduce compilation time
+#ifndef LOBYTE
+#define LOBYTE(w)           ((unsigned char)(((unsigned int)(w)) & 0xff))
+#endif
+
+typedef struct tagPOINT;
+
 template <typename T>
 class TSecData
 {
 public:
 	T data;
-	BYTE bKey;
-	BYTE FakePtr1;
-	BYTE FakePtr2;
-	WORD wChecksum;
+	unsigned char  bKey;
+	unsigned char  FakePtr1;
+	unsigned char  FakePtr2;
+	unsigned short wChecksum;
 };
 
 template <typename T>
 class TSecType
 {
 private:
-	DWORD FakePtr1;
-	DWORD FakePtr2;
+	unsigned long FakePtr1;
+	unsigned long FakePtr2;
 	TSecData<T>* m_secdata;
 
 public:
@@ -36,8 +43,8 @@ public:
 	{
 		this->m_secdata = new TSecData<T>(); // uses proper ZAllocEx now (since global new operator overload)
 
-		this->FakePtr1 = static_cast<DWORD>(rand());
-		this->FakePtr2 = static_cast<DWORD>(rand());
+		this->FakePtr1 = static_cast<unsigned long>(rand());
+		this->FakePtr2 = static_cast<unsigned long>(rand());
 
 		this->m_secdata->FakePtr1 = LOBYTE(this->FakePtr1);
 		this->m_secdata->FakePtr2 = LOBYTE(this->FakePtr2);
@@ -49,8 +56,8 @@ public:
 	{
 		this->m_secdata = new TSecData<T>(); // uses proper ZAllocEx now (since global new operator overload)
 
-		this->FakePtr1 = static_cast<DWORD>(rand()); 
-		this->FakePtr2 = static_cast<DWORD>(rand()); 
+		this->FakePtr1 = static_cast<unsigned long>(rand());
+		this->FakePtr2 = static_cast<unsigned long>(rand());
 
 		this->m_secdata->FakePtr1 = LOBYTE(this->FakePtr1);
 		this->m_secdata->FakePtr2 = LOBYTE(this->FakePtr2);
@@ -120,13 +127,13 @@ public:
 	T GetData()
 	{
 		T decrypted_data = this->m_secdata->data;
-		WORD wChecksum = 0;
+		unsigned short wChecksum = 0;
 
-		for (BYTE i = 0, key = this->m_secdata->bKey; i < (sizeof(T) + 1); i++)
+		for (unsigned char i = 0, key = this->m_secdata->bKey; i < (sizeof(T) + 1); i++)
 		{
 			if (i > 0)
 			{
-				key = reinterpret_cast<BYTE*>(&this->m_secdata->data)[i - 1] + key + 42;;
+				key = reinterpret_cast<unsigned char*>(&this->m_secdata->data)[i - 1] + key + 42;;
 				wChecksum = i > 1 ? ((8 * wChecksum) | (key + (wChecksum >> 13))) : ((key + 4) | 0xD328);
 			}
 
@@ -137,9 +144,8 @@ public:
 					key = 42;
 				}
 
-				reinterpret_cast<BYTE*>(&decrypted_data)[i] = reinterpret_cast<BYTE*>(&this->m_secdata->data)[i] ^ key;
+				reinterpret_cast<unsigned char*>(&decrypted_data)[i] = reinterpret_cast<unsigned char*>(&this->m_secdata->data)[i] ^ key;
 			}
-
 		}
 
 		if (this->m_secdata->wChecksum != wChecksum || LOBYTE(this->FakePtr1) != this->m_secdata->FakePtr1 || LOBYTE(this->FakePtr2) != this->m_secdata->FakePtr2)
@@ -153,13 +159,13 @@ public:
 	VOID SetData(T data)
 	{
 		this->m_secdata->bKey = LOBYTE(rand());
-		this->m_secdata->wChecksum = sizeof(T) > 1 ? static_cast<WORD>(39525) : static_cast<WORD>(-26011);
+		this->m_secdata->wChecksum = sizeof(T) > 1 ? static_cast<unsigned short>(39525) : static_cast<unsigned short>(-26011);
 
-		for (BYTE i = 0, key = this->m_secdata->bKey; i < (sizeof(T) + 1); i++)
+		for (unsigned char i = 0, key = this->m_secdata->bKey; i < (sizeof(T) + 1); i++)
 		{
 			if (i > 0)
 			{
-				key = (key ^ reinterpret_cast<BYTE*>(&data)[i - 1]) + key + 42;
+				key = (key ^ reinterpret_cast<unsigned char*>(&data)[i - 1]) + key + 42;
 				this->m_secdata->wChecksum = (8 * this->m_secdata->wChecksum) | (key + (this->m_secdata->wChecksum >> 13));
 			}
 
@@ -170,84 +176,39 @@ public:
 					key = 42;
 				}
 
-				reinterpret_cast<BYTE*>(&this->m_secdata->data)[i] = reinterpret_cast<BYTE*>(&data)[i] ^ key;
+				reinterpret_cast<unsigned char*>(&this->m_secdata->data)[i] = reinterpret_cast<unsigned char*>(&data)[i] ^ key;
 			}
-
 		}
 	}
 };
 
 class SECPOINT
 {
-public:
+private:
 	TSecType<long> y;
 	TSecType<long> x;
 
-	SECPOINT() { }
+public:
+	SECPOINT();
+	SECPOINT(long ptX, long ptY);
+	SECPOINT(SECPOINT* ptSrc);
+	SECPOINT(tagPOINT* ptSrc);
 
-	SECPOINT(long ptX, long ptY)
-	{
-		this->x = ptX;
-		this->y = ptY;
-	}
+	~SECPOINT();
 
-	SECPOINT(SECPOINT* ptSrc)
-	{
-		this->x.SetData(ptSrc->x.GetData());
-		this->y.SetData(ptSrc->y.GetData());
-	}
+	long GetX();
+	long GetY();
 
-	SECPOINT(tagPOINT* ptSrc)
-	{
-		this->x.SetData(ptSrc->x);
-		this->y.SetData(ptSrc->y);
-	}
+	SECPOINT* operator =(tagPOINT* ptSrc);
+	SECPOINT* operator =(SECPOINT* ptSrc);
 
-	~SECPOINT()
-	{
-		this->x.~TSecType();
-		this->y.~TSecType();
-	}
+	bool operator !=(tagPOINT* ptSrc);
+	bool operator ==(tagPOINT* ptSrc);
+	bool operator !=(SECPOINT* ptSrc);
+	bool operator ==(SECPOINT* ptSrc);
 
-	SECPOINT* operator =(tagPOINT* ptSrc)
-	{
-		this->x.SetData(ptSrc->x);
-		this->y.SetData(ptSrc->y);
-		return this;
-	}
-
-	SECPOINT* operator =(SECPOINT* ptSrc)
-	{
-		this->x.SetData(ptSrc->x.GetData());
-		this->y.SetData(ptSrc->y.GetData());
-		return this;
-	}
-
-	BOOL operator !=(tagPOINT* ptSrc)
-	{
-		return this->x.GetData() != ptSrc->x || this->y.GetData() != ptSrc->y;
-	}
-
-	BOOL operator ==(tagPOINT* ptSrc)
-	{
-		return this->x.GetData() == ptSrc->x && this->y.GetData() == ptSrc->y;
-	}
-
-	BOOL operator !=(SECPOINT* ptSrc)
-	{
-		return this->x.GetData() != ptSrc->x.GetData() || this->y.GetData() != ptSrc->y.GetData();
-	}
-
-	BOOL operator ==(SECPOINT* ptSrc)
-	{
-		return this->x.GetData() == ptSrc->x.GetData() && this->y.GetData() == ptSrc->y.GetData();
-	}
-
-	operator tagPOINT()
-	{
-		return { this->x.GetData(), this->y.GetData() };
-	}
+	operator tagPOINT();
 };
 
 assert_size(sizeof(TSecData<long>), 0x0C)
-assert_size(sizeof(SECPOINT), 0x18)
+assert_size(sizeof(TSecType<long>), 0x0C)

@@ -1,20 +1,18 @@
 #pragma once
-
-// Exclude rarely-used stuff from Windows headers
-// Important to define this before Windows.h is included in a project because of linker issues with the WinSock2 lib
-#define WIN32_LEAN_AND_MEAN
-
-#include <Windows.h>
 #include <functional>
-#include "hooker.h"
-#include "logger.h"
-#include "winhooks.h"
-#include "winhook_types.h"
-#include "FakeModule.h"
 
-#define MAPLE_INJECT_USE_IJL TRUE
-#define MAPLE_MULTICLIENT TRUE
-#define MAPLE_INSTAJECT FALSE
+/*
+ * Define pre-compiler macros here
+ */
+#define MAPLE_INJECT_USE_IJL false
+#define DIRECTX_VERSION 9 // currently only dx9 works
+
+/* forward declarations */
+using DWORD = unsigned long;
+using UINT_PTR = unsigned int;
+using SOCKET = UINT_PTR;
+using WSPPROC_TABLE = struct _WSPPROC_TABLE;
+class FakeModule;
 
 /// <summary>
 /// 
@@ -29,32 +27,35 @@ private:
 		{
 			/* define toggles for logging and other behavior separately */
 		public:
-			BOOL OpenMutexA_Spoof;
+			bool ImGui_Enable; // this will hook dx9 and wndproc
+			bool OpenMutexA_Spoof;
 
-			BOOL WSPConnect_Logging;
-			BOOL NtTerminateProc_Logging;
-			BOOL OpenProcess_Logging;
-			BOOL CreateProcess_Logging;
-			BOOL OpenMutexA_Logging;
-			BOOL RegCreateKeyA_Logging;
-			BOOL GetProcAddress_Logging;
+			bool WSPConnect_Logging;
+			bool NtTerminateProc_Logging;
+			bool OpenProcess_Logging;
+			bool CreateProcess_Logging;
+			bool OpenMutexA_Logging;
+			bool RegCreateKeyA_Logging;
+			bool GetProcAddress_Logging;
 
 			WinHooks()
 			{
-				OpenMutexA_Spoof = TRUE;
-				WSPConnect_Logging = TRUE;
-				NtTerminateProc_Logging = TRUE;
-				OpenProcess_Logging = FALSE;
-				CreateProcess_Logging = TRUE;
-				OpenMutexA_Logging = TRUE;
-				RegCreateKeyA_Logging = FALSE;
-				GetProcAddress_Logging = FALSE;
+				ImGui_Enable = true;
+
+				OpenMutexA_Spoof = false;
+				WSPConnect_Logging = false;
+				NtTerminateProc_Logging = false;
+				OpenProcess_Logging = false;
+				CreateProcess_Logging = false;
+				OpenMutexA_Logging = false;
+				RegCreateKeyA_Logging = false;
+				GetProcAddress_Logging = false;
 			}
 		};
 	public:
 		const char* DllName = "LEN.dll";
 		const char* MapleExeName = "MapleStory.exe";
-		const char* MapleStartupArgs = " GameLaunching 127.0.0.1 8484";
+		const char* MapleStartupArgs = "";// " GameLaunching 127.0.0.1 8484";
 
 		const char* MapleExitWindowWebUrl = "http";
 		const char* MapleWindowClass = "MapleStoryClass";
@@ -64,9 +65,10 @@ private:
 		DWORD LocaleSpoofValue;
 		DWORD SleepAfterUnpackDuration;
 
-		BOOL  ForceWindowedOnStart;
-		BOOL  InjectImmediately;
-		BOOL  AllowMulticlient;
+		bool  ForceWindowedOnStart;
+		bool  InjectImmediately;
+		bool  AllowMulticlient;
+
 
 		Common::Config::WinHooks HookToggleInfo;
 
@@ -76,13 +78,12 @@ private:
 
 			LocaleSpoofValue = 0;
 			SleepAfterUnpackDuration = 0;
-			ForceWindowedOnStart = TRUE;
-			InjectImmediately = FALSE;
-			AllowMulticlient = TRUE;
+			ForceWindowedOnStart = true;
+			InjectImmediately = true;
+			AllowMulticlient = false;
 		}
 	};
 
-private:
 	static Common* _s_pInstance;
 	static Common::Config* _s_pConfig;
 
@@ -92,9 +93,9 @@ public: // public because all the C-style hooks have to access these members
 
 	/* TODO throw all the winsock stuff into its own class */
 	SOCKET			m_GameSock;
-	WSPPROC_TABLE	m_ProcTable;
+	WSPPROC_TABLE* m_pProcTable;
 	DWORD			m_dwGetProcRetAddr;
-	BOOL			m_bThemidaUnpacked;
+	bool			m_bThemidaUnpacked;
 	FakeModule* m_pFakeHsModule;
 
 	/// <summary>
@@ -103,13 +104,13 @@ public: // public because all the C-style hooks have to access these members
 	std::function<void()> m_PostMutexFunc;
 
 private: // forcing the class to only have one instance, created through CreateInstance
-	Common(BOOL bHookWinLibs, std::function<void()> pPostMutexFunc, const char* sIP, const char* sOriginalIP);
-	Common() = delete;
-	Common(const Common&) = delete;
-	Common& operator =(const Common&) = delete;
+	Common(bool bHookWinLibs, std::function<void()> const& pPostMutexFunc, const char* sIP, const char* sOriginalIP);
 
 public:
 	~Common();
+	Common() = delete;
+	Common(const Common&) = delete;
+	Common& operator =(const Common&) = delete;
 
 	/// <summary>
 	/// Function called from library hooks.
@@ -119,9 +120,9 @@ public:
 	/// Mutex and CreateWindow hooks are called properly.
 	/// </summary>
 	void OnThemidaUnpack();
+	static void SetImGuiDrawingFunc(std::function<void()> pDrawingFunc);
 
-public:
-	static void CreateInstance(BOOL bHookWinLibs, std::function<void()> pMutexFunc, const char* sIP, const char* sOriginalIP)
+	static void CreateInstance(bool bHookWinLibs, std::function<void()> const& pMutexFunc, const char* sIP, const char* sOriginalIP)
 	{
 		if (_s_pInstance) return;
 

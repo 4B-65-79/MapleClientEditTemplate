@@ -1,4 +1,4 @@
-#pragma once
+#include <intrin.h>
 #include "winhooks.h"
 #include "winhook_types.h"
 #include "hooker.h"
@@ -6,6 +6,40 @@
 #include "memedit.h"
 #include "FakeModule.h"
 #include "Common.h"
+
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+
+#if DIRECTX_VERSION
+
+#if DIRECTX_VERSION == 8
+#pragma comment(lib, "d3d8")
+#include "imgui/imgui_impl_dx8.h"
+#elif DIRECTX_VERSION == 9
+#pragma comment(lib, "d3d9")
+#include "imgui/imgui_impl_dx9.h"
+#endif
+
+// forward declaration of imgui wndproc
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+#if DIRECTX_VERSION == 8:
+#define IMGUI_DX_NEW_FRAME() ImGui_ImplDX8_NewFrame()
+#define IMGUI_DX_RENDER_DRAW_DATA(drawData) ImGui_ImplDX8_RenderDrawData(drawData)
+#define IMGUI_DX_INIT(device) ImGui_ImplDX8_Init(device)
+
+#define DX_CREATEDEVICE_INTERFACE_OFFSET 15
+#define DX_INTERFACE_OFFSET__ENDSCENE 34
+#elif DIRECTX_VERSION == 9
+#define IMGUI_DX_NEW_FRAME() ImGui_ImplDX9_NewFrame()
+#define IMGUI_DX_RENDER_DRAW_DATA(drawData) ImGui_ImplDX9_RenderDrawData(drawData)
+#define IMGUI_DX_INIT(device) ImGui_ImplDX9_Init(device)
+
+#define DX_INTERFACE_OFFSET__CREATEDEVICE 16
+#define DX_INTERFACE_OFFSET__ENDSCENE 42
+#endif
+
+#endif
 
 namespace WinHooks
 {
@@ -19,11 +53,181 @@ namespace WinHooks
 // deprecated api call warning
 #pragma warning(disable : 4996)
 
-/// <summary>
-/// Used to map out imports used by MapleStory.
-/// The log output can be used to reconstruct the _ZAPIProcAddress struct
-/// ZAPI struct is the dword before the while loop when searching for aob: 68 FE 00 00 00 ?? 8D
-/// </summary>
+#if DIRECTX_VERSION
+
+	namespace DirectX
+	{
+		WNDPROC g_pWndProc;
+		std::function<void()> g_pDrawingFunc;
+		HWND					g_hWnd;
+		LPDIRECT3DX             g_pD3D;
+		IDirect3DDeviceX* g_pd3dDevice;
+		D3DPRESENT_PARAMETERS   g_d3dpp;
+
+		/// <summary>
+		/// This isn't a D3D function but since it's related to D3D (in this project) I'm calling it that.
+		/// This will only get hooked and used if ImGui_Enable is enabled in the common config.
+		/// This exists to pass window commands to ImGui before it gets passed into MapleStory.
+		/// If we don't do this, the ImGui windows will not be able to accept any input.
+		/// </summary>
+		LRESULT D3D_WndProc_Hook(
+			HWND hWnd,
+			UINT msg,
+			WPARAM wParam,
+			LPARAM lParam
+		) {
+			// pass control to imgui first to see if it wants to continue
+			if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+				return true;
+
+			// if this is a mouse message and imgui wants control, 
+			// we do not pass control back to maple afterwards
+			switch (msg) {
+				//case WM_MOUSELEAVE:
+				//case WM_MOUSEMOVE:
+				//case WM_SETCURSOR:
+			case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+			case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+			case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+			case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+			case WM_LBUTTONUP:
+			case WM_RBUTTONUP:
+			case WM_MBUTTONUP:
+			case WM_XBUTTONUP:
+			case WM_MOUSEWHEEL:
+			case WM_MOUSEHWHEEL:
+			case WM_KEYDOWN:
+			case WM_KEYUP:
+			case WM_SYSKEYDOWN:
+			case WM_SYSKEYUP:
+			case WM_SETFOCUS:
+			case WM_KILLFOCUS:
+			case WM_CHAR:
+				if (ImGui::GetCurrentContext())
+				{
+					ImGuiIO& io = ImGui::GetIO();
+					if (io.WantCaptureMouse || io.WantCaptureKeyboard)
+						return true;
+				}
+
+				break;
+			}
+
+			// send control to the original maplestory wndproc function
+			return g_pWndProc(hWnd, msg, wParam, lParam);
+		}
+
+		HRESULT WINAPI D3DX__CreateDevice_Hook(
+			LPDIRECT3DX pThis,
+			UINT Adapter,
+			D3DDEVTYPE DeviceType,
+			HWND hFocusWindow,
+			DWORD BehaviorFlags,
+			D3DPRESENT_PARAMETERS* pPresentationParameters,
+			IDirect3DDeviceX** ppReturnedDeviceInterface
+		)
+		{
+#if _DEBUG
+			Log("CreateDevice detour triggered by 0x%0X.", _ReturnAddress());
+#endif
+
+			auto hrRet = D3DX__CreateDevice_Original(pThis, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+
+			// get instance handle to maplestory
+			HINSTANCE hInst = reinterpret_cast<HINSTANCE>(GetWindowLongPtr(hFocusWindow, GWLP_HINSTANCE));
+
+			// get window class structure -- we need the WndProc pointer so we can replace it with our own
+			WNDCLASSEXA wc;
+			auto bClassInfoSuccess = GetClassInfoEx(hInst, Common::GetConfig()->MapleWindowClass, &wc);
+
+#if _DEBUG
+			if (!bClassInfoSuccess)
+			{
+				Log("[D3D8__CreateDevice_Hook]: Failed GetClassInfoEx. Error: %d", GetLastError());
+			}
+
+			Log("[D3D8__CreateDevice_Hook]: hWnd: 0x%08X. lpfnWndProc: 0x%08X.", hFocusWindow, wc.lpfnWndProc);
+#endif
+
+			// save the original wndproc so we can call it from our detour
+			g_pWndProc = wc.lpfnWndProc;
+
+			// detour the wndproc with our wndproc hook
+			SetWindowLongPtr(hFocusWindow, GWLP_WNDPROC, reinterpret_cast<LONG>(D3D_WndProc_Hook));
+
+			g_hWnd = hFocusWindow;
+			D3DX__EndScene_Original = (D3DX__EndScene_t)HookVTableFunction(
+				*ppReturnedDeviceInterface,
+				D3DX__EndScene_Hook,
+				DX_INTERFACE_OFFSET__ENDSCENE // magic number indicates offset of IDirect3D9::CreateDevice
+			);
+			return hrRet;
+		}
+
+		IDirect3DX* WINAPI Direct3DCreateX_Hook(UINT SDKVersion)
+		{
+#if _DEBUG
+			Log("D3D hooked");
+#endif
+
+			IDirect3DX* pD3D = Direct3DCreateX_Original(SDKVersion);
+
+			g_pD3D = pD3D;
+			D3DX__CreateDevice_Original = (D3DX__CreateDevice_t)HookVTableFunction(
+				g_pD3D,
+				D3DX__CreateDevice_Hook,
+				DX_INTERFACE_OFFSET__CREATEDEVICE // magic number indicates offset of IDirect3D9::CreateDevice
+			);
+			return pD3D;
+		}
+
+		HRESULT WINAPI D3DX__EndScene_Hook(LPDIRECT3DDEVICEX pThis)
+		{
+			static BOOL s_bInitialized = false;
+
+			if (!g_pd3dDevice)
+				g_pd3dDevice = pThis;
+
+			if (!s_bInitialized)
+			{
+#if _DEBUG
+				Log("Initializing ImGUI..");
+#endif
+				ImGui::CreateContext();
+				ImGuiIO& io = ImGui::GetIO();
+				io.ConfigFlags = ImGuiConfigFlags_NoMouseCursorChange;
+
+				ImGui_ImplWin32_Init(g_hWnd);
+				IMGUI_DX_INIT(g_pd3dDevice);
+				s_bInitialized = true;
+			}
+			else
+			{
+				IMGUI_DX_NEW_FRAME();
+				ImGui_ImplWin32_NewFrame();
+				ImGui::NewFrame();
+
+				if (g_pDrawingFunc)
+				{
+					g_pDrawingFunc(); 
+				}
+
+				ImGui::EndFrame();
+				ImGui::Render();
+				IMGUI_DX_RENDER_DRAW_DATA(ImGui::GetDrawData());
+			}
+
+			return D3DX__EndScene_Original(pThis);
+		}
+	}
+
+#endif 
+
+	/// <summary>
+	/// Used to map out imports used by MapleStory.
+	/// The log output can be used to reconstruct the _ZAPIProcAddress struct
+	/// ZAPI struct is the dword before the while loop when searching for aob: 68 FE 00 00 00 ?? 8D
+	/// </summary>
 	FARPROC WINAPI GetProcAddress_Hook(HMODULE hModule, LPCSTR lpProcName)
 	{
 		if (Common::GetInstance()->m_bThemidaUnpacked)
@@ -53,6 +257,9 @@ namespace WinHooks
 		LPCSTR				  lpName
 	)
 	{
+#if _DEBUG
+		Log("CreateMutexA Triggered: %s", lpName);
+#endif
 		if (!CreateMutexA_Original)
 		{
 			Log("Original CreateMutex pointer corrupted. Failed to return mutex value to calling function.");
@@ -61,19 +268,21 @@ namespace WinHooks
 		}
 		else if (lpName && strstr(lpName, Common::GetConfig()->MapleMutex))
 		{
-#if MAPLE_MULTICLIENT
-			// from https://github.com/pokiuwu/AuthHook-v203.4/blob/AuthHook-v203.4/Client176/WinHook.cpp
+			if (Common::GetConfig()->AllowMulticlient)
+			{
+				// from https://github.com/pokiuwu/AuthHook-v203.4/blob/AuthHook-v203.4/Client176/WinHook.cpp
 
-			char szMutex[128];
-			int nPID = GetCurrentProcessId();
+				char szMutex[128];
+				int nPID = GetCurrentProcessId();
 
-			sprintf_s(szMutex, "%s-%d", lpName, nPID);
-			lpName = szMutex;
-#endif
+				sprintf_s(szMutex, "%s-%d", lpName, nPID);
+				lpName = szMutex;
+			}
 
-#if !MAPLE_INSTAJECT
-			Common::GetInstance()->OnThemidaUnpack();
-#endif
+			if (!Common::GetConfig()->InjectImmediately)
+			{
+				Common::GetInstance()->OnThemidaUnpack();
+			}
 
 			return CreateMutexA_Original(lpMutexAttributes, bInitialOwner, lpName);
 		}
@@ -177,7 +386,7 @@ namespace WinHooks
 		{
 			Log("[CreateProcessA] [%08X] Killing web request to: %s", _ReturnAddress(), lpApplicationName);
 			return FALSE; // ret value doesn't get used by maple after creating web requests as far as i can tell
-		}
+	}
 
 		return CreateProcessA_Original(
 			lpApplicationName, lpCommandLine, lpProcessAttributes,
@@ -185,7 +394,7 @@ namespace WinHooks
 			lpEnvironment, lpCurrentDirectory, lpStartupInfo,
 			lpProcessInformation
 		);
-	}
+}
 
 	/// <summary>
 	/// Same as CreateProcessW
@@ -372,10 +581,10 @@ namespace WinHooks
 				Log("Detected and rerouting socket connection to IP: %s", Common::GetInstance()->m_sRedirectIP);
 				service->sin_addr.S_un.S_addr = inet_addr(Common::GetInstance()->m_sRedirectIP);
 				Common::GetInstance()->m_GameSock = s;
-			}
-
-			return Common::GetInstance()->m_ProcTable.lpWSPConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS, lpErrno);
 		}
+
+			return Common::GetInstance()->m_pProcTable->lpWSPConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS, lpErrno);
+	}
 
 		/// <summary>
 		/// 
@@ -387,7 +596,7 @@ namespace WinHooks
 			LPINT			 lpErrno
 		)
 		{
-			int nRet = Common::GetInstance()->m_ProcTable.lpWSPGetPeerName(s, name, namelen, lpErrno);
+			int nRet = Common::GetInstance()->m_pProcTable->lpWSPGetPeerName(s, name, namelen, lpErrno);
 
 			if (nRet != SOCKET_ERROR)
 			{
@@ -434,7 +643,7 @@ namespace WinHooks
 			LPINT  lpErrno
 		)
 		{
-			int nRet = Common::GetInstance()->m_ProcTable.lpWSPCloseSocket(s, lpErrno);
+			int nRet = Common::GetInstance()->m_pProcTable->lpWSPCloseSocket(s, lpErrno);
 
 			if (s == Common::GetInstance()->m_GameSock)
 			{
@@ -463,7 +672,7 @@ namespace WinHooks
 				Log("Overriding socket routines..");
 
 				Common::GetInstance()->m_GameSock = INVALID_SOCKET;
-				Common::GetInstance()->m_ProcTable = *lpProcTable;
+				Common::GetInstance()->m_pProcTable = lpProcTable;
 
 				lpProcTable->lpWSPConnect = WSPConnect_Hook;
 				lpProcTable->lpWSPGetPeerName = WSPGetPeerName_Hook;

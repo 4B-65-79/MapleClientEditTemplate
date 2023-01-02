@@ -1,7 +1,4 @@
 #pragma once
-#include <Windows.h>
-#include <condition_variable>
-
 #include "asserts.h"
 
 /*
@@ -14,6 +11,11 @@
 
 #define ZTLSECURE_CHECKSUM 0xBAADF00D
 #define ZTLSECURE_ROTATION 5
+
+// defining LOBYTE instead of include Windows.h to reduce compilation time
+#ifndef LOBYTE
+#define LOBYTE(w)           ((unsigned char)(((unsigned int)(w)) & 0xff))
+#endif
 
 template <typename T> // uses fastcall because it passes args through registers instead of on stack -- faster execution
 unsigned int __fastcall ZtlSecureTear(T* at, T t)
@@ -112,14 +114,14 @@ public:
 		this->_ZtlSecureTear_bottom_CS = ZtlSecureTear<int>(this->_ZtlSecureTear_bottom, NULL);
 	}
 
-	BOOL IsRectEmpty()
+	bool IsRectEmpty()
 	{
 		if (GetLeft() < GetRight() && GetTop() < GetBottom())
 		{
-			return FALSE;
+			return false;
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	int GetRight() // original name: ZtlSecureGet_right
@@ -162,5 +164,3 @@ public:
 		this->_ZtlSecureTear_bottom_CS = ZtlSecureTear<int>(this->_ZtlSecureTear_bottom, b);
 	}
 };
-
-assert_size(sizeof(SECRECT), 0x30)

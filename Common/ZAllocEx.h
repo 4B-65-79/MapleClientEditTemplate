@@ -1,10 +1,4 @@
 #pragma once
-#include <intrin.h>
-#include <mutex>
-#include <thread>
-#include <windows.h>
-#include <heapapi.h>
-
 #include "asserts.h"
 #include "logger.h"
 
@@ -14,9 +8,15 @@
 #include "ZAllocBase.h"
 #include "ZAllocStrSelector.h"
 
+#include <Windows.h>
+#include <mutex>
+
+#if _DEBUG
+#include <intrin.h>
 // fix returnaddress func
 // https://docs.microsoft.com/en-us/cpp/intrinsics/returnaddress?view=msvc-160
 #pragma intrinsic(_ReturnAddress)
+#endif
 
 template <typename T> struct ZAllocEx : ZAllocBase, T { }; // dummy base
 

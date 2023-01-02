@@ -77,18 +77,18 @@ namespace CommonUnitTesting
 		{
 			SECPOINT sp = SECPOINT();
 
-			Assert::IsTrue(sp.x.GetData() == 0, TEXT("X does not equal 0"));
-			Assert::IsTrue(sp.y.GetData() == 0, TEXT("X does not equal 0"));
+			Assert::IsTrue(sp.GetX() == 0, TEXT("X does not equal 0"));
+			Assert::IsTrue(sp.GetY() == 0, TEXT("X does not equal 0"));
 
 			SECPOINT sp2 = SECPOINT(15, 20);
 
-			Assert::IsTrue(sp2.x.GetData() == 15, TEXT("X does not equal 15"));
-			Assert::IsTrue(sp2.y.GetData() == 20, TEXT("Y does not equal 20"));
+			Assert::IsTrue(sp2.GetX() == 15, TEXT("X does not equal 15"));
+			Assert::IsTrue(sp2.GetY() == 20, TEXT("Y does not equal 20"));
 
 			SECPOINT sp3 = &sp2;
 
-			Assert::IsTrue(sp2.x.GetData() == sp3.x.GetData(), TEXT("SECPOINT2.X does not equal SECPOINT3.X"));
-			Assert::IsTrue(sp2.y.GetData() == sp3.y.GetData(), TEXT("SECPOINT2.Y does not equal SECPOINT3.Y"));
+			Assert::IsTrue(sp2.GetX() == sp3.GetX(), TEXT("SECPOINT2.X does not equal SECPOINT3.X"));
+			Assert::IsTrue(sp2.GetY() == sp3.GetY(), TEXT("SECPOINT2.Y does not equal SECPOINT3.Y"));
 
 			tagPOINT tp = tagPOINT();
 			tp.x = 4;
@@ -96,15 +96,15 @@ namespace CommonUnitTesting
 
 			SECPOINT sp4 = &tp;
 
-			Assert::IsTrue(tp.x == sp4.x.GetData(), TEXT("tagPOINT->SECPOINT constructor failed (X value incorrect)"));
-			Assert::IsTrue(tp.y == sp4.y.GetData(), TEXT("tagPOINT->SECPOINT constructor failed (Y value incorrect)"));
+			Assert::IsTrue(tp.x == sp4.GetX(), TEXT("tagPOINT->SECPOINT constructor failed (X value incorrect)"));
+			Assert::IsTrue(tp.y == sp4.GetY(), TEXT("tagPOINT->SECPOINT constructor failed (Y value incorrect)"));
 
 			SECPOINT sp5;
 
 			sp5 = &tp;
 
-			Assert::IsTrue(tp.x == sp5.x.GetData(), TEXT("SECPOINT = tagPOINT operator overload failed (X value incorrect)"));
-			Assert::IsTrue(tp.y == sp5.y.GetData(), TEXT("SECPOINT = tagPOINT operator overload failed (Y value incorrect)"));
+			Assert::IsTrue(tp.x == sp5.GetX(), TEXT("SECPOINT = tagPOINT operator overload failed (X value incorrect)"));
+			Assert::IsTrue(tp.y == sp5.GetY(), TEXT("SECPOINT = tagPOINT operator overload failed (Y value incorrect)"));
 
 			Assert::IsTrue(sp5 == &sp4, TEXT("Operator == overload failed."));
 			Assert::IsFalse(sp5 != &sp4, TEXT("Operator != overload failed."));
@@ -121,8 +121,8 @@ namespace CommonUnitTesting
 			Assert::IsTrue(tp.x == 1 && tp.y == 2);
 
 			sp = &tp;
-			Assert::IsTrue(sp.x == tp.x, TEXT("TagPoint and SecPoint X-Value missmatch"));
-			Assert::IsTrue(sp.y == tp.y, TEXT("TagPoint and SecPoint Y-Value missmatch"));
+			Assert::IsTrue(sp.GetX() == tp.x, TEXT("TagPoint and SecPoint X-Value missmatch"));
+			Assert::IsTrue(sp.GetY() == tp.y, TEXT("TagPoint and SecPoint Y-Value missmatch"));
 
 			SECPOINT sp1 = SECPOINT(15, 20);
 			tagPOINT tp1 = tagPOINT(sp);

@@ -1,5 +1,14 @@
 #include "winhook_types.h"
 
+
+#if DIRECTX_VERSION
+
+D3DX__CreateDevice_t D3DX__CreateDevice_Original;
+D3DX__EndScene_t D3DX__EndScene_Original;
+Direct3DCreateX_t Direct3DCreateX_Original;
+
+#endif
+
 CreateFileA_t CreateFileA_Original;
 WinExec_t WinExec_Original;
 GetProcAddress_t GetProcAddress_Original;

@@ -1,7 +1,13 @@
 #pragma once
+#include <functional>
+
 #include "asserts.h"
 #include "ZRefCountedAccessor.h"
 #include "ZRefCountedDummy.h"
+
+// forward declarations
+template <class T>
+class ZRefCountedDummy;
 
 /// <summary>
 /// Emulation of MapleStory's implementation of a doubly linked list template.
@@ -13,7 +19,7 @@ class ZList : ZRefCountedAccessor<T>, ZRefCountedAccessor<ZRefCountedDummy<T>>
 #define ZLIST_INVALID_INDEX -1
 
 private:
-	char gap4[1]; // padding to make the struct align properly on a 4-byte width
+	char gap4[1];
 	size_t m_uCount;
 	T* m_pHead;
 	T* m_pTail;
@@ -333,6 +339,29 @@ public:
 
 	/***=========== TRAVERSAL ===========***/
 
+	// return true to exit enumeration
+	void EnumerateList(std::function<bool(T*)> enum_func = [](T*) -> bool { return true; })
+	{
+		// Credit for this idea: https://github.com/st4ckh0und
+		// though his implementation seems to be skipping the first entry.. :(
+
+		if (GetCount() <= 0) return;
+
+		T* pos = GetHeadPosition();
+
+		if (enum_func(pos)) return;
+
+		for (int i = 1; i < GetCount(); i++)
+		{
+			auto result = GetNext(&pos);
+
+			if (result)
+			{
+				if (enum_func(result)) break;
+			}
+		}
+	}
+
 	T* GetNext(T** pos)
 	{
 		if (!pos) return nullptr;
@@ -346,6 +375,12 @@ public:
 		}
 
 		ZRefCountedDummy<T>* pNode = this->CastNode(pRet);
+
+		if (!pNode)
+		{
+			*pos = nullptr;
+			return nullptr;
+		}
 
 		*pos = pNode->m_pNext ? reinterpret_cast<T*>(&reinterpret_cast<ZRefCountedDummy<T>*>(pNode->m_pNext)->t) : nullptr;
 
